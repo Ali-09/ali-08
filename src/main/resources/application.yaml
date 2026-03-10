@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: ali-08
+  datasource:
+    url: jdbc:postgresql://localhost:5432/finance
+    username: postgres
+    password: 123456789
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  sql:
+    init:
+      mode: never
