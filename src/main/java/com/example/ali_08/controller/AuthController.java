@@ -4,6 +4,7 @@ import com.example.ali_08.dto.ApiResponse;
 import com.example.ali_08.dto.AuthResponse;
 import com.example.ali_08.dto.LoginRequest;
 import com.example.ali_08.dto.RegisterRequest;
+import com.example.ali_08.dto.UserDTO;
 import com.example.ali_08.service.AuthService;
 
 import jakarta.validation.Valid;
@@ -23,10 +24,10 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody RegisterRequest request) {
-        authService.register(request);
+    public ResponseEntity<ApiResponse<UserDTO>> register(@Valid @RequestBody RegisterRequest request) {
+        UserDTO user = authService.register(request);
         return ResponseEntity.ok(
-            ApiResponse.success(null, "Usuario registrado correctamente", HttpStatus.OK.value())
+            ApiResponse.success(user, "Usuario registrado correctamente", HttpStatus.OK.value())
         );
     }
 
@@ -38,6 +39,13 @@ public class AuthController {
         );
         return ResponseEntity.ok(
             ApiResponse.success(response, "Login exitoso", HttpStatus.OK.value())
+        );
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout() {
+        return ResponseEntity.ok(
+            ApiResponse.success(null, "Sesión cerrada correctamente", HttpStatus.OK.value())
         );
     }
 }

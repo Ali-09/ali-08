@@ -30,7 +30,7 @@ public class AuthService {
     private final UserProfileRepository userProfileRepository;
 
     @Transactional
-    public void register(RegisterRequest request) {
+    public UserDTO register(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new UserAlreadyExistsException("El usuario ya existe");
@@ -53,6 +53,13 @@ public class AuthService {
                 .build();
 
         userProfileRepository.save(profile);
+
+        return UserDTO.builder()
+                .name(profile.getFirstName())
+                .email(user.getEmail())
+                .salary(profile.getSalary().doubleValue())
+                .currencyId(1L) // Default currency_id
+                .build();
     }
 
     public AuthResponse login(String email, String password) {
