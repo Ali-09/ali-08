@@ -1,9 +1,10 @@
 package com.example.ali_08.service;
 
+import com.example.ali_08.dto.AuthResponse;
 import com.example.ali_08.dto.RegisterRequest;
+import com.example.ali_08.dto.UserDTO;
 import com.example.ali_08.exception.InvalidCredentialsException;
 import com.example.ali_08.exception.UserAlreadyExistsException;
-import com.example.ali_08.model.Currency;
 import com.example.ali_08.model.User;
 import com.example.ali_08.model.UserProfile;
 import com.example.ali_08.repository.CurrencyRepository;
@@ -54,7 +55,7 @@ public class AuthService {
         userProfileRepository.save(profile);
     }
 
-    public String login(String email, String password) {
+    public AuthResponse login(String email, String password) {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Email o contraseña incorrectos"));
@@ -63,7 +64,16 @@ public class AuthService {
             throw new InvalidCredentialsException("Email o contraseña incorrectos");
         }
 
-        return jwtService.generateToken(user.getEmail());
+        String token = jwtService.generateToken(user.getEmail());
+        UserProfile profile = userProfileRepository.findByUser(user).orElse(null);
+
+        UserDTO userDTO = UserDTO.builder()
+                .email(user.getEmail())
+                .name(profile != null ? profile.getFirstName() : null)
+                .salary(profile != null && profile.getSalary() != null ? profile.getSalary().doubleValue() : null)
+                .currencyId(1L) // Default currency_id as requested
+                .build();
+
+        return new AuthResponse(token, userDTO);
     }
-    
 }
