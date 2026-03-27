@@ -21,6 +21,22 @@ public class ProfileService {
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
 
+    public UserDTO getProfile() {
+        String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        UserProfile profile = userProfileRepository.findByUser(user)
+                .orElseGet(() -> UserProfile.builder().user(user).build());
+
+        return UserDTO.builder()
+                .name(profile.getFirstName())
+                .email(user.getEmail())
+                .salary(profile.getSalary() != null ? profile.getSalary().doubleValue() : 0.0)
+                .currencyId(1L) // Default currency_id
+                .build();
+    }
+
     @Transactional
     public UserDTO updateProfile(ProfileUpdateRequest request) {
         String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();

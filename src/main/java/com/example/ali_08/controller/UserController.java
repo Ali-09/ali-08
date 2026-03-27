@@ -28,6 +28,14 @@ public class UserController {
         );
     }
 
+    @GetMapping("/profile")
+    public ResponseEntity<ApiResponse<UserDTO>> getProfile() {
+        UserDTO user = profileService.getProfile();
+        return ResponseEntity.ok(
+            ApiResponse.success(user, "Perfil obtenido correctamente", HttpStatus.OK.value())
+        );
+    }
+
     @PutMapping("/profile")
     public ResponseEntity<ApiResponse<UserDTO>> updateProfile(@Valid @RequestBody ProfileUpdateRequest request) {
         UserDTO updatedUser = profileService.updateProfile(request);
