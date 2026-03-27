@@ -17,8 +17,4 @@ public class RegisterRequest {
 
     @NotBlank(message = "La contraseña es obligatoria")
     private String password;
-
-    @NotNull(message = "El salario es obligatorio")
-    @Positive(message = "El salario debe ser mayor a 0")
-    private Double salary;
 }

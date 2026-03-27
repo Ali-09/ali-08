@@ -49,7 +49,7 @@ public class AuthService {
         UserProfile profile = UserProfile.builder()
                 .user(user)
                 .firstName(request.getName())
-                .salary(BigDecimal.valueOf(request.getSalary()))
+                .salary(BigDecimal.ZERO)
                 .build();
 
         userProfileRepository.save(profile);
