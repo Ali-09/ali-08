@@ -1,6 +1,6 @@
 package com.example.ali_08.service;
 
-import com.example.ali_08.dto.ProfileUpdateRequest;
+import com.example.ali_08.dto.ProfileRequest;
 import com.example.ali_08.dto.UserDTO;
 import com.example.ali_08.exception.UserAlreadyExistsException;
 import com.example.ali_08.model.User;
@@ -38,7 +38,7 @@ public class ProfileService {
     }
 
     @Transactional
-    public UserDTO updateProfile(ProfileUpdateRequest request) {
+    public UserDTO updateProfile(ProfileRequest request) {
         String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(currentEmail)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));

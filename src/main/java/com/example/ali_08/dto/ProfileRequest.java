@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ProfileUpdateRequest {
+public class ProfileRequest {
     @NotBlank(message = "El nombre es obligatorio")
     private String name;
 
