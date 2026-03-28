@@ -12,8 +12,9 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class DashboardResponse {
+    private String title;
     private BigDecimal totalBalance;
     private String currencyCode;
-    private BigDecimal monthlyIncome; // Sum of income records for month (placeholder for now)
-    private BigDecimal monthlyExpenses; // Sum of expense records for month (placeholder for now)
+    private BigDecimal monthlyIncome;
+    private BigDecimal monthlyExpenses;
 }

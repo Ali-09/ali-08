@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/dashboards")
 @RequiredArgsConstructor
@@ -18,10 +20,10 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<DashboardResponse>> getDashboard() {
-        DashboardResponse dashboardData = dashboardService.getDashboardData();
+    public ResponseEntity<ApiResponse<List<DashboardResponse>>> getDashboard() {
+        List<DashboardResponse> dashboardData = dashboardService.getDashboardData();
         return ResponseEntity.ok(
-            ApiResponse.success(dashboardData, "Datos del dashboard obtenidos correctamente", HttpStatus.OK.value())
+            ApiResponse.success(dashboardData, "Lista de dashboards obtenida correctamente", HttpStatus.OK.value())
         );
     }
 }
