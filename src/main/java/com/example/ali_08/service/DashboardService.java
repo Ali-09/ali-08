@@ -27,11 +27,20 @@ public class DashboardService {
     public DashboardResponse getDashboardData() {
         User user = getCurrentUser();
 
-        List<Account> userAccounts = accountRepository.findByUser(user);
+        // Obtener todos los movimientos del usuario para calcular el balance virtual
+        List<Record> allRecords = recordRepository.findByUserOrderByDateDesc(user);
 
-        BigDecimal totalBalance = userAccounts.stream()
-                .map(Account::getBalance)
+        BigDecimal totalIncome = allRecords.stream()
+                .filter(r -> r.getCategory().getRecordType().getName().equalsIgnoreCase("Ingreso"))
+                .map(Record::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalExpenses = allRecords.stream()
+                .filter(r -> r.getCategory().getRecordType().getName().equalsIgnoreCase("Gasto"))
+                .map(Record::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalBalance = totalIncome.subtract(totalExpenses);
 
         // Calcular ingresos y gastos del mes actual
         LocalDateTime startOfMonth = LocalDateTime.now().with(TemporalAdjusters.firstDayOfMonth()).withHour(0).withMinute(0).withSecond(0);
@@ -51,7 +60,7 @@ public class DashboardService {
 
         return DashboardResponse.builder()
                 .totalBalance(totalBalance)
-                .currencyCode(userAccounts.isEmpty() ? "USD" : userAccounts.get(0).getCurrency().getCode())
+                .currencyCode("USD") // Default currency
                 .monthlyIncome(monthlyIncome)
                 .monthlyExpenses(monthlyExpenses)
                 .build();

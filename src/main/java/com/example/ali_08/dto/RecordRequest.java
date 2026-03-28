@@ -27,7 +27,4 @@ public class RecordRequest {
 
     @NotNull(message = "La categoría es obligatoria")
     private Long categoryId;
-
-    @NotNull(message = "La cuenta es obligatoria")
-    private Long accountId;
 }
