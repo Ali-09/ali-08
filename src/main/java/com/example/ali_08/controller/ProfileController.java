@@ -25,7 +25,7 @@ public class ProfileController {
         );
     }
 
-    @PutMapping
+    @PatchMapping
     public ResponseEntity<ApiResponse<UserDTO>> updateProfile(@Valid @RequestBody ProfileRequest request) {
         UserDTO updatedUser = profileService.updateProfile(request);
         return ResponseEntity.ok(
