@@ -5,8 +5,10 @@ import com.example.ali_08.dto.DashboardResponse;
 import com.example.ali_08.model.Dashboard;
 import com.example.ali_08.model.Record;
 import com.example.ali_08.model.User;
+import com.example.ali_08.model.UserProfile;
 import com.example.ali_08.repository.DashboardRepository;
 import com.example.ali_08.repository.RecordRepository;
+import com.example.ali_08.repository.UserProfileRepository;
 import com.example.ali_08.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -26,29 +28,31 @@ public class DashboardService {
     private final DashboardRepository dashboardRepository;
     private final RecordRepository recordRepository;
     private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
 
     public List<DashboardResponse> getDashboardData() {
         User user = getCurrentUser();
+        UserProfile profile = userProfileRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Perfil de usuario no encontrado"));
+
+        BigDecimal salary = profile.getSalary() != null ? profile.getSalary() : BigDecimal.ZERO;
         
         // 1. Obtener dashboards del usuario de la BD
         List<Dashboard> userDashboards = dashboardRepository.findByUser(user);
 
-        // 2. Calcular métricas financieras globales del usuario
-        List<Record> allRecords = recordRepository.findByUserOrderByDateDesc(user);
-        BigDecimal totalIncome = calculateSum(allRecords, "Ingreso");
-        BigDecimal totalExpenses = calculateSum(allRecords, "Gasto");
-        BigDecimal totalBalance = totalIncome.subtract(totalExpenses);
-
+        // 2. Calcular gastos del mes actual
         LocalDateTime startOfMonth = LocalDateTime.now().with(TemporalAdjusters.firstDayOfMonth()).withHour(0).withMinute(0).withSecond(0);
         LocalDateTime endOfMonth = LocalDateTime.now().with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59);
         List<Record> currentMonthRecords = recordRepository.findByUserAndDateBetween(user, startOfMonth, endOfMonth);
         
-        BigDecimal monthlyIncome = calculateSum(currentMonthRecords, "Ingreso");
         BigDecimal monthlyExpenses = calculateSum(currentMonthRecords, "Gasto");
+        
+        // El balance es Salario - Gastos del mes
+        BigDecimal currentBalance = salary.subtract(monthlyExpenses);
 
         // 3. Mapear cada dashboard de la BD a la respuesta
         return userDashboards.stream()
-                .map(db -> mapToResponse(db, totalBalance, monthlyIncome, monthlyExpenses))
+                .map(db -> mapToResponse(db, currentBalance, salary, monthlyExpenses))
                 .collect(Collectors.toList());
     }
 
@@ -101,24 +105,29 @@ public class DashboardService {
 
     private DashboardResponse getSingleDashboardResponse(Dashboard db) {
         User user = db.getUser();
-        List<Record> allRecords = recordRepository.findByUserOrderByDateDesc(user);
-        BigDecimal totalBalance = calculateSum(allRecords, "Ingreso").subtract(calculateSum(allRecords, "Gasto"));
+        UserProfile profile = userProfileRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Perfil de usuario no encontrado"));
+
+        BigDecimal salary = profile.getSalary() != null ? profile.getSalary() : BigDecimal.ZERO;
 
         LocalDateTime startOfMonth = LocalDateTime.now().with(TemporalAdjusters.firstDayOfMonth()).withHour(0).withMinute(0).withSecond(0);
         LocalDateTime endOfMonth = LocalDateTime.now().with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59);
         List<Record> currentMonthRecords = recordRepository.findByUserAndDateBetween(user, startOfMonth, endOfMonth);
 
-        return mapToResponse(db, totalBalance, calculateSum(currentMonthRecords, "Ingreso"), calculateSum(currentMonthRecords, "Gasto"));
+        BigDecimal monthlyExpenses = calculateSum(currentMonthRecords, "Gasto");
+        BigDecimal currentBalance = salary.subtract(monthlyExpenses);
+
+        return mapToResponse(db, currentBalance, salary, monthlyExpenses);
     }
 
-    private DashboardResponse mapToResponse(Dashboard db, BigDecimal totalBalance, BigDecimal monthlyIncome, BigDecimal monthlyExpenses) {
+    private DashboardResponse mapToResponse(Dashboard db, BigDecimal currentBalance, BigDecimal salary, BigDecimal monthlyExpenses) {
         return DashboardResponse.builder()
                 .id(db.getId())
                 .name(db.getName())
                 .description(db.getDescription())
-                .totalBalance(totalBalance)
+                .totalBalance(currentBalance)
                 .currencyCode("USD")
-                .monthlyIncome(monthlyIncome)
+                .monthlyIncome(salary)
                 .monthlyExpenses(monthlyExpenses)
                 .build();
     }
