@@ -2,10 +2,8 @@ package com.example.ali_08.service;
 
 import com.example.ali_08.dto.RecordRequest;
 import com.example.ali_08.model.User;
-import com.example.ali_08.model.Account;
 import com.example.ali_08.model.Category;
 import com.example.ali_08.model.Record;
-import com.example.ali_08.repository.AccountRepository;
 import com.example.ali_08.repository.CategoryRepository;
 import com.example.ali_08.repository.RecordRepository;
 import com.example.ali_08.repository.UserRepository;
