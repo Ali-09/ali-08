@@ -26,8 +26,10 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/login", "/api/register").permitAll()
-                .requestMatchers("/api/ping").permitAll()
+                .requestMatchers("/api/login", "/api/register", "/api/ping").permitAll()
+                .requestMatchers("/api/dashboards/**").authenticated()
+                .requestMatchers("/api/profile/**").authenticated()
+                .requestMatchers("/api/records/**").authenticated()
                 .requestMatchers(
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
