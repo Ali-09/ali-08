@@ -78,6 +78,8 @@ public class AuthService {
                 .email(user.getEmail())
                 .salary(profile.getSalary().doubleValue())
                 .currencyId(1L) // Default currency_id
+                .incomeFrequencyId(defaultFrequency != null ? defaultFrequency.getId() : null)
+                .incomeFrequencyName(defaultFrequency != null ? defaultFrequency.getName() : null)
                 .build();
     }
 
@@ -92,12 +94,15 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getEmail());
         UserProfile profile = userProfileRepository.findByUser(user).orElse(null);
+        IncomeFrequency frequency = profile != null ? profile.getIncomeFrequency() : null;
 
         UserDTO userDTO = UserDTO.builder()
                 .email(user.getEmail())
                 .name(profile != null ? profile.getFirstName() : null)
                 .salary(profile != null && profile.getSalary() != null ? profile.getSalary().doubleValue() : null)
                 .currencyId(1L) // Default currency_id as requested
+                .incomeFrequencyId(frequency != null ? frequency.getId() : null)
+                .incomeFrequencyName(frequency != null ? frequency.getName() : null)
                 .build();
 
         return new AuthResponse(token, userDTO);

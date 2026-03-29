@@ -34,6 +34,15 @@ public class FinanceService {
             if (frequency != null && frequency.getName().equalsIgnoreCase("Mensual")) {
                 startDate = LocalDate.now().with(TemporalAdjusters.firstDayOfMonth());
                 endDate = LocalDate.now().with(TemporalAdjusters.lastDayOfMonth());
+            } else if (frequency != null && frequency.getName().equalsIgnoreCase("Quincenal")) {
+                int dayOfMonth = LocalDate.now().getDayOfMonth();
+                if (dayOfMonth <= 15) {
+                    startDate = LocalDate.now().withDayOfMonth(1);
+                    endDate = LocalDate.now().withDayOfMonth(15);
+                } else {
+                    startDate = LocalDate.now().withDayOfMonth(16);
+                    endDate = LocalDate.now().with(TemporalAdjusters.lastDayOfMonth());
+                }
             } else if (frequency != null && frequency.getName().equalsIgnoreCase("Semanal")) {
                 startDate = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
                 endDate = startDate.plusDays(6);

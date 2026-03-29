@@ -27,11 +27,25 @@ public class FinanceController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        // Validar rango de fechas si se proporcionan
+        if ((startDate == null) != (endDate == null)) {
+            return ResponseEntity.badRequest().body(
+                ApiResponse.error("Debes enviar startDate y endDate juntos", HttpStatus.BAD_REQUEST.value())
+            );
+        }
+
         if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
             return ResponseEntity.badRequest().body(
                 ApiResponse.error("La fecha de inicio no puede ser posterior a la fecha de fin", HttpStatus.BAD_REQUEST.value())
             );
+        }
+
+        if (startDate != null && endDate != null) {
+            long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
+            if (days > 366) {
+                return ResponseEntity.badRequest().body(
+                    ApiResponse.error("El rango máximo permitido es de 12 meses", HttpStatus.BAD_REQUEST.value())
+                );
+            }
         }
 
         List<FinanceResponse> finances = financeService.getFinancesByPeriod(startDate, endDate);

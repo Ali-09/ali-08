@@ -14,4 +14,6 @@ public class UserDTO {
     private String email;
     private Double salary;
     private Long currencyId;
+    private Long incomeFrequencyId;
+    private String incomeFrequencyName;
 }

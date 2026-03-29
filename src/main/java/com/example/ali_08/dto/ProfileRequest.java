@@ -2,6 +2,7 @@ package com.example.ali_08.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,4 +25,7 @@ public class ProfileRequest {
     private Double salary;
 
     private Long currencyId;
+
+    @Positive(message = "El periodo debe ser un id válido")
+    private Long incomeFrequencyId;
 }
