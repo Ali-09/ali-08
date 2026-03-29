@@ -5,9 +5,11 @@ import com.example.ali_08.dto.RegisterRequest;
 import com.example.ali_08.dto.UserDTO;
 import com.example.ali_08.exception.InvalidCredentialsException;
 import com.example.ali_08.exception.UserAlreadyExistsException;
+import com.example.ali_08.model.Dashboard;
 import com.example.ali_08.model.User;
 import com.example.ali_08.model.UserProfile;
 import com.example.ali_08.repository.CurrencyRepository;
+import com.example.ali_08.repository.DashboardRepository;
 import com.example.ali_08.repository.UserProfileRepository;
 import com.example.ali_08.repository.UserRepository;
 
@@ -28,6 +30,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final CurrencyRepository currencyRepository;
     private final UserProfileRepository userProfileRepository;
+    private final DashboardRepository dashboardRepository;
 
     @Transactional
     public UserDTO register(RegisterRequest request) {
@@ -53,6 +56,15 @@ public class AuthService {
                 .build();
 
         userProfileRepository.save(profile);
+
+        // Crear Dashboard por defecto
+        Dashboard defaultDashboard = Dashboard.builder()
+                .name("Mi Tablero Principal")
+                .description("Resumen general de mis finanzas")
+                .user(user)
+                .build();
+        
+        dashboardRepository.save(defaultDashboard);
 
         return UserDTO.builder()
                 .name(profile.getFirstName())

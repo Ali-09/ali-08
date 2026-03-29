@@ -12,7 +12,9 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class DashboardResponse {
-    private String title;
+    private Long id;
+    private String name;
+    private String description;
     private BigDecimal totalBalance;
     private String currencyCode;
     private BigDecimal monthlyIncome;
