@@ -1,5 +1,6 @@
 package com.example.ali_08.service;
 
+import com.example.ali_08.dto.DashboardRequest;
 import com.example.ali_08.dto.DashboardResponse;
 import com.example.ali_08.model.Dashboard;
 import com.example.ali_08.model.Record;
@@ -7,6 +8,7 @@ import com.example.ali_08.model.User;
 import com.example.ali_08.repository.DashboardRepository;
 import com.example.ali_08.repository.RecordRepository;
 import com.example.ali_08.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -46,16 +48,79 @@ public class DashboardService {
 
         // 3. Mapear cada dashboard de la BD a la respuesta
         return userDashboards.stream()
-                .map(db -> DashboardResponse.builder()
-                        .id(db.getId())
-                        .name(db.getName())
-                        .description(db.getDescription())
-                        .totalBalance(totalBalance)
-                        .currencyCode("USD")
-                        .monthlyIncome(monthlyIncome)
-                        .monthlyExpenses(monthlyExpenses)
-                        .build())
+                .map(db -> mapToResponse(db, totalBalance, monthlyIncome, monthlyExpenses))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public DashboardResponse createDashboard(DashboardRequest request) {
+        User user = getCurrentUser();
+        
+        Dashboard dashboard = Dashboard.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .user(user)
+                .build();
+        
+        dashboard = dashboardRepository.save(dashboard);
+        
+        // Obtenemos métricas para la respuesta
+        return getSingleDashboardResponse(dashboard);
+    }
+
+    @Transactional
+    public DashboardResponse updateDashboard(Long id, DashboardRequest request) {
+        Dashboard dashboard = dashboardRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Dashboard no encontrado"));
+        
+        User user = getCurrentUser();
+        if (!dashboard.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("No tienes permiso para editar este dashboard");
+        }
+
+        dashboard.setName(request.getName());
+        dashboard.setDescription(request.getDescription());
+        
+        dashboard = dashboardRepository.save(dashboard);
+        
+        return getSingleDashboardResponse(dashboard);
+    }
+
+    @Transactional
+    public void deleteDashboard(Long id) {
+        Dashboard dashboard = dashboardRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Dashboard no encontrado"));
+        
+        User user = getCurrentUser();
+        if (!dashboard.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("No tienes permiso para eliminar este dashboard");
+        }
+
+        dashboardRepository.delete(dashboard);
+    }
+
+    private DashboardResponse getSingleDashboardResponse(Dashboard db) {
+        User user = db.getUser();
+        List<Record> allRecords = recordRepository.findByUserOrderByDateDesc(user);
+        BigDecimal totalBalance = calculateSum(allRecords, "Ingreso").subtract(calculateSum(allRecords, "Gasto"));
+
+        LocalDateTime startOfMonth = LocalDateTime.now().with(TemporalAdjusters.firstDayOfMonth()).withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime endOfMonth = LocalDateTime.now().with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59);
+        List<Record> currentMonthRecords = recordRepository.findByUserAndDateBetween(user, startOfMonth, endOfMonth);
+
+        return mapToResponse(db, totalBalance, calculateSum(currentMonthRecords, "Ingreso"), calculateSum(currentMonthRecords, "Gasto"));
+    }
+
+    private DashboardResponse mapToResponse(Dashboard db, BigDecimal totalBalance, BigDecimal monthlyIncome, BigDecimal monthlyExpenses) {
+        return DashboardResponse.builder()
+                .id(db.getId())
+                .name(db.getName())
+                .description(db.getDescription())
+                .totalBalance(totalBalance)
+                .currencyCode("USD")
+                .monthlyIncome(monthlyIncome)
+                .monthlyExpenses(monthlyExpenses)
+                .build();
     }
 
     private BigDecimal calculateSum(List<Record> records, String type) {
