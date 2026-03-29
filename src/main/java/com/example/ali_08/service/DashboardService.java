@@ -2,12 +2,11 @@ package com.example.ali_08.service;
 
 import com.example.ali_08.dto.DashboardRequest;
 import com.example.ali_08.dto.DashboardResponse;
+import com.example.ali_08.dto.FinanceResponse;
 import com.example.ali_08.model.Dashboard;
-import com.example.ali_08.model.Record;
 import com.example.ali_08.model.User;
 import com.example.ali_08.model.UserProfile;
 import com.example.ali_08.repository.DashboardRepository;
-import com.example.ali_08.repository.RecordRepository;
 import com.example.ali_08.repository.UserProfileRepository;
 import com.example.ali_08.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -16,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
@@ -26,9 +26,9 @@ import java.util.stream.Collectors;
 public class DashboardService {
 
     private final DashboardRepository dashboardRepository;
-    private final RecordRepository recordRepository;
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final FinanceService financeService;
 
     public List<DashboardResponse> getDashboardData() {
         User user = getCurrentUser();
@@ -40,12 +40,17 @@ public class DashboardService {
         // 1. Obtener dashboards del usuario de la BD
         List<Dashboard> userDashboards = dashboardRepository.findByUser(user);
 
-        // 2. Calcular gastos del mes actual
-        LocalDateTime startOfMonth = LocalDateTime.now().with(TemporalAdjusters.firstDayOfMonth()).withHour(0).withMinute(0).withSecond(0);
-        LocalDateTime endOfMonth = LocalDateTime.now().with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59);
-        List<Record> currentMonthRecords = recordRepository.findByUserAndDateBetween(user, startOfMonth, endOfMonth);
+        // 2. Calcular gastos del mes actual usando la nueva lógica de finanzas (incluye recurrentes)
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate startOfMonth = now.with(TemporalAdjusters.firstDayOfMonth()).toLocalDate();
+        LocalDate endOfMonth = now.with(TemporalAdjusters.lastDayOfMonth()).toLocalDate();
         
-        BigDecimal monthlyExpenses = calculateSum(currentMonthRecords, "Gasto");
+        List<FinanceResponse> currentMonthFinances = financeService.getFinancesByPeriod(startOfMonth, endOfMonth);
+        
+        BigDecimal monthlyExpenses = currentMonthFinances.stream()
+                .filter(f -> f.getRecordTypeName().equalsIgnoreCase("Gasto"))
+                .map(FinanceResponse::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         
         // El balance es Salario - Gastos del mes
         BigDecimal currentBalance = salary.subtract(monthlyExpenses);
@@ -110,11 +115,17 @@ public class DashboardService {
 
         BigDecimal salary = profile.getSalary() != null ? profile.getSalary() : BigDecimal.ZERO;
 
-        LocalDateTime startOfMonth = LocalDateTime.now().with(TemporalAdjusters.firstDayOfMonth()).withHour(0).withMinute(0).withSecond(0);
-        LocalDateTime endOfMonth = LocalDateTime.now().with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59);
-        List<Record> currentMonthRecords = recordRepository.findByUserAndDateBetween(user, startOfMonth, endOfMonth);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate startOfMonth = now.with(TemporalAdjusters.firstDayOfMonth()).toLocalDate();
+        LocalDate endOfMonth = now.with(TemporalAdjusters.lastDayOfMonth()).toLocalDate();
 
-        BigDecimal monthlyExpenses = calculateSum(currentMonthRecords, "Gasto");
+        List<FinanceResponse> currentMonthFinances = financeService.getFinancesByPeriod(startOfMonth, endOfMonth);
+
+        BigDecimal monthlyExpenses = currentMonthFinances.stream()
+                .filter(f -> f.getRecordTypeName().equalsIgnoreCase("Gasto"))
+                .map(FinanceResponse::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         BigDecimal currentBalance = salary.subtract(monthlyExpenses);
 
         return mapToResponse(db, currentBalance, salary, monthlyExpenses);
@@ -130,13 +141,6 @@ public class DashboardService {
                 .monthlyIncome(salary)
                 .monthlyExpenses(monthlyExpenses)
                 .build();
-    }
-
-    private BigDecimal calculateSum(List<Record> records, String type) {
-        return records.stream()
-                .filter(r -> r.getCategory().getRecordType().getName().equalsIgnoreCase(type))
-                .map(Record::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private User getCurrentUser() {

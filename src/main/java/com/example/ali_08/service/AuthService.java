@@ -6,10 +6,12 @@ import com.example.ali_08.dto.UserDTO;
 import com.example.ali_08.exception.InvalidCredentialsException;
 import com.example.ali_08.exception.UserAlreadyExistsException;
 import com.example.ali_08.model.Dashboard;
+import com.example.ali_08.model.IncomeFrequency;
 import com.example.ali_08.model.User;
 import com.example.ali_08.model.UserProfile;
 import com.example.ali_08.repository.CurrencyRepository;
 import com.example.ali_08.repository.DashboardRepository;
+import com.example.ali_08.repository.IncomeFrequencyRepository;
 import com.example.ali_08.repository.UserProfileRepository;
 import com.example.ali_08.repository.UserRepository;
 
@@ -31,6 +33,7 @@ public class AuthService {
     private final CurrencyRepository currencyRepository;
     private final UserProfileRepository userProfileRepository;
     private final DashboardRepository dashboardRepository;
+    private final IncomeFrequencyRepository incomeFrequencyRepository;
 
     @Transactional
     public UserDTO register(RegisterRequest request) {
@@ -49,10 +52,14 @@ public class AuthService {
 
         userRepository.save(user);
 
+        IncomeFrequency defaultFrequency = incomeFrequencyRepository.findByName("Mensual")
+                .orElse(null);
+
         UserProfile profile = UserProfile.builder()
                 .user(user)
                 .firstName(request.getName())
                 .salary(BigDecimal.ZERO)
+                .incomeFrequency(defaultFrequency)
                 .build();
 
         userProfileRepository.save(profile);

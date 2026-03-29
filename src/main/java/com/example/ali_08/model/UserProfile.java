@@ -31,4 +31,8 @@ public class UserProfile {
     private String phone;
 
     private BigDecimal salary;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "income_frequency_id")
+    private IncomeFrequency incomeFrequency;
 }
