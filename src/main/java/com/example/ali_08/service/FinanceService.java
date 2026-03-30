@@ -1,10 +1,18 @@
 package com.example.ali_08.service;
 
 import com.example.ali_08.dto.FinanceResponse;
+import com.example.ali_08.dto.FinanceRequest;
+import com.example.ali_08.dto.FinanceUpdateRequest;
 import com.example.ali_08.model.*;
 import com.example.ali_08.repository.FinancialRecordRepository;
+import com.example.ali_08.repository.FinancialRecordMetadataRepository;
+import com.example.ali_08.repository.CategoryRepository;
+import com.example.ali_08.repository.RecordTypeRepository;
+import com.example.ali_08.repository.PaymentMethodRepository;
+import com.example.ali_08.repository.PaymentStatusRepository;
 import com.example.ali_08.repository.UserProfileRepository;
 import com.example.ali_08.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -20,8 +28,13 @@ import java.util.stream.Collectors;
 public class FinanceService {
 
     private final FinancialRecordRepository financialRecordRepository;
+    private final FinancialRecordMetadataRepository financialRecordMetadataRepository;
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final RecordTypeRepository recordTypeRepository;
+    private final CategoryRepository categoryRepository;
+    private final PaymentMethodRepository paymentMethodRepository;
+    private final PaymentStatusRepository paymentStatusRepository;
 
     public List<FinanceResponse> getFinancesByPeriod(LocalDate startDate, LocalDate endDate) {
         User user = getCurrentUser();
@@ -77,6 +90,154 @@ public class FinanceService {
         }
 
         return responses;
+    }
+
+    @Transactional
+    public FinanceResponse createFinance(FinanceRequest request) {
+        User user = getCurrentUser();
+
+        RecordType recordType = recordTypeRepository.findById(request.getRecordTypeId())
+                .orElseThrow(() -> new RuntimeException("Tipo de registro no encontrado"));
+
+        Category category = null;
+        if (request.getCategoryId() != null) {
+            category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+        }
+
+        PaymentMethod paymentMethod = null;
+        if (request.getPaymentMethodId() != null) {
+            paymentMethod = paymentMethodRepository.findById(request.getPaymentMethodId())
+                    .orElseThrow(() -> new RuntimeException("Método de pago no encontrado"));
+        }
+
+        PaymentStatus paymentStatus = null;
+        if (request.getPaymentStatusId() != null) {
+            paymentStatus = paymentStatusRepository.findById(request.getPaymentStatusId())
+                    .orElseThrow(() -> new RuntimeException("Estatus de pago no encontrado"));
+        }
+
+        FinancialRecord record = FinancialRecord.builder()
+                .user(user)
+                .amount(request.getAmount())
+                .description(request.getDescription())
+                .recordDate(request.getRecordDate())
+                .isRecurrent(request.getIsRecurrent())
+                .recordType(recordType)
+                .category(category)
+                .paymentMethod(paymentMethod)
+                .paymentStatus(paymentStatus)
+                .build();
+
+        record = financialRecordRepository.save(record);
+
+        if (Boolean.TRUE.equals(request.getIsRecurrent())) {
+            if (request.getFrequencyType() == null || request.getFrequencyType().isBlank()) {
+                throw new RuntimeException("frequencyType es obligatorio para registros recurrentes");
+            }
+
+            FinancialRecordMetadata metadata = FinancialRecordMetadata.builder()
+                    .financialRecord(record)
+                    .frequencyType(request.getFrequencyType())
+                    .frequencyValue(request.getFrequencyValue() != null ? request.getFrequencyValue() : 1)
+                    .nextOccurrence(request.getNextOccurrence())
+                    .extraNotes(request.getExtraNotes())
+                    .isActive(request.getMetadataActive() != null ? request.getMetadataActive() : true)
+                    .build();
+            financialRecordMetadataRepository.save(metadata);
+            record.setMetadata(metadata);
+        }
+
+        return mapToResponse(record, record.getRecordDate());
+    }
+
+    @Transactional
+    public FinanceResponse updateFinance(Long id, FinanceUpdateRequest request) {
+        User user = getCurrentUser();
+
+        FinancialRecord record = financialRecordRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Finance no encontrada"));
+
+        if (!record.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("No tienes permiso para editar esta finance");
+        }
+
+        if (request.getAmount() != null) record.setAmount(request.getAmount());
+        if (request.getDescription() != null) record.setDescription(request.getDescription());
+        if (request.getRecordDate() != null) record.setRecordDate(request.getRecordDate());
+
+        if (request.getRecordTypeId() != null) {
+            RecordType recordType = recordTypeRepository.findById(request.getRecordTypeId())
+                    .orElseThrow(() -> new RuntimeException("Tipo de registro no encontrado"));
+            record.setRecordType(recordType);
+        }
+
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Categoría no encontrada"));
+            record.setCategory(category);
+        }
+
+        if (request.getPaymentMethodId() != null) {
+            PaymentMethod paymentMethod = paymentMethodRepository.findById(request.getPaymentMethodId())
+                    .orElseThrow(() -> new RuntimeException("Método de pago no encontrado"));
+            record.setPaymentMethod(paymentMethod);
+        }
+
+        if (request.getPaymentStatusId() != null) {
+            PaymentStatus paymentStatus = paymentStatusRepository.findById(request.getPaymentStatusId())
+                    .orElseThrow(() -> new RuntimeException("Estatus de pago no encontrado"));
+            record.setPaymentStatus(paymentStatus);
+        }
+
+        if (request.getIsRecurrent() != null) {
+            record.setIsRecurrent(request.getIsRecurrent());
+        }
+
+        FinancialRecordMetadata metadata = record.getMetadata();
+        if (Boolean.TRUE.equals(record.getIsRecurrent())) {
+            if (metadata == null) {
+                metadata = FinancialRecordMetadata.builder()
+                        .financialRecord(record)
+                        .isActive(true)
+                        .frequencyValue(1)
+                        .build();
+            }
+
+            if (request.getFrequencyType() != null) metadata.setFrequencyType(request.getFrequencyType());
+            if (request.getFrequencyValue() != null) metadata.setFrequencyValue(request.getFrequencyValue());
+            if (request.getNextOccurrence() != null) metadata.setNextOccurrence(request.getNextOccurrence());
+            if (request.getExtraNotes() != null) metadata.setExtraNotes(request.getExtraNotes());
+            if (request.getMetadataActive() != null) metadata.setIsActive(request.getMetadataActive());
+
+            if (metadata.getFrequencyType() == null || metadata.getFrequencyType().isBlank()) {
+                throw new RuntimeException("frequencyType es obligatorio para registros recurrentes");
+            }
+
+            FinancialRecordMetadata saved = financialRecordMetadataRepository.save(metadata);
+            record.setMetadata(saved);
+        } else {
+            if (metadata != null) {
+                financialRecordMetadataRepository.delete(metadata);
+                record.setMetadata(null);
+            }
+        }
+
+        FinancialRecord saved = financialRecordRepository.save(record);
+        return mapToResponse(saved, saved.getRecordDate());
+    }
+
+    @Transactional
+    public void deleteFinance(Long id) {
+        User user = getCurrentUser();
+        FinancialRecord record = financialRecordRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Finance no encontrada"));
+
+        if (!record.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("No tienes permiso para eliminar esta finance");
+        }
+
+        financialRecordRepository.delete(record);
     }
 
     private List<LocalDate> calculateOccurrences(FinancialRecord record, LocalDate start, LocalDate end) {

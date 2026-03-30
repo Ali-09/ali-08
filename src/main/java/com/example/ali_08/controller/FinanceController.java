@@ -1,16 +1,24 @@
 package com.example.ali_08.controller;
 
 import com.example.ali_08.dto.ApiResponse;
+import com.example.ali_08.dto.FinanceRequest;
 import com.example.ali_08.dto.FinanceResponse;
+import com.example.ali_08.dto.FinanceUpdateRequest;
 import com.example.ali_08.service.FinanceService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -51,6 +59,30 @@ public class FinanceController {
         List<FinanceResponse> finances = financeService.getFinancesByPeriod(startDate, endDate);
         return ResponseEntity.ok(
             ApiResponse.success(finances, "Finanzas obtenidas correctamente", HttpStatus.OK.value())
+        );
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<FinanceResponse>> createFinance(@Valid @RequestBody FinanceRequest request) {
+        FinanceResponse created = financeService.createFinance(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.success(created, "Finance creada correctamente", HttpStatus.CREATED.value())
+        );
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<FinanceResponse>> updateFinance(@PathVariable Long id, @RequestBody FinanceUpdateRequest request) {
+        FinanceResponse updated = financeService.updateFinance(id, request);
+        return ResponseEntity.ok(
+                ApiResponse.success(updated, "Finance actualizada correctamente", HttpStatus.OK.value())
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteFinance(@PathVariable Long id) {
+        financeService.deleteFinance(id);
+        return ResponseEntity.ok(
+                ApiResponse.success(null, "Finance eliminada correctamente", HttpStatus.OK.value())
         );
     }
 }
