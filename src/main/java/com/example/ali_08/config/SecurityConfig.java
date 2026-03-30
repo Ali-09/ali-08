@@ -30,7 +30,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/login", "/api/register", "/api/ping").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**", "/error").permitAll()
-                .requestMatchers("/api/dashboards/**", "/api/profile/**", "/api/records/**", "/api/catalogs/**", "/api/finances/**").hasAuthority("ROLE_USER")
+                .requestMatchers("/api/dashboards/**", "/api/profile/**", "/api/catalogs/**", "/api/finances/**").hasAuthority("ROLE_USER")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
