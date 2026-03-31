@@ -7,6 +7,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.example.ali_08.model.Dashboard;
+
 @Entity
 @Table(name = "financial_records")
 @Getter
@@ -54,6 +56,10 @@ public class FinancialRecord {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_status_id")
     private PaymentStatus paymentStatus;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dashboard_id")
+    private Dashboard dashboard;
 
     @OneToOne(mappedBy = "financialRecord", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private FinancialRecordMetadata metadata;

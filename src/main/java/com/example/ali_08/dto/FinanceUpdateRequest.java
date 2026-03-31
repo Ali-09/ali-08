@@ -26,5 +26,5 @@ public class FinanceUpdateRequest {
     private LocalDate nextOccurrence;
     private String extraNotes;
     private Boolean metadataActive;
+    private Long dashboardId;
 }
-

@@ -34,10 +34,11 @@ public class FinanceRequest {
     @NotNull(message = "isRecurrent es obligatorio")
     private Boolean isRecurrent;
 
+    private Long dashboardId;
+
     private String frequencyType;
     private Integer frequencyValue;
     private LocalDate nextOccurrence;
     private String extraNotes;
     private Boolean metadataActive;
 }
-

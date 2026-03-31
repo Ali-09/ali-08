@@ -33,7 +33,8 @@ public class FinanceController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<FinanceResponse>>> getFinances(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long dashboardId
     ) {
         if ((startDate == null) != (endDate == null)) {
             return ResponseEntity.badRequest().body(
@@ -56,7 +57,7 @@ public class FinanceController {
             }
         }
 
-        List<FinanceResponse> finances = financeService.getFinancesByPeriod(startDate, endDate);
+        List<FinanceResponse> finances = financeService.getFinancesByPeriod(startDate, endDate, dashboardId);
         return ResponseEntity.ok(
             ApiResponse.success(finances, "Finanzas obtenidas correctamente", HttpStatus.OK.value())
         );

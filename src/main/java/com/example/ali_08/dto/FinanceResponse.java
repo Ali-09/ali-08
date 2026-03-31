@@ -21,4 +21,5 @@ public class FinanceResponse {
     private String recordTypeName;
     private Boolean isRecurrent;
     private String frequencyType;
+    private Long dashboardId;
 }

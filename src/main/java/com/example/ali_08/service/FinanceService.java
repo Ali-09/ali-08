@@ -10,6 +10,7 @@ import com.example.ali_08.repository.CategoryRepository;
 import com.example.ali_08.repository.RecordTypeRepository;
 import com.example.ali_08.repository.PaymentMethodRepository;
 import com.example.ali_08.repository.PaymentStatusRepository;
+import com.example.ali_08.repository.DashboardRepository;
 import com.example.ali_08.repository.UserProfileRepository;
 import com.example.ali_08.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -35,8 +36,9 @@ public class FinanceService {
     private final CategoryRepository categoryRepository;
     private final PaymentMethodRepository paymentMethodRepository;
     private final PaymentStatusRepository paymentStatusRepository;
+    private final DashboardRepository dashboardRepository;
 
-    public List<FinanceResponse> getFinancesByPeriod(LocalDate startDate, LocalDate endDate) {
+    public List<FinanceResponse> getFinancesByPeriod(LocalDate startDate, LocalDate endDate, Long dashboardId) {
         User user = getCurrentUser();
         UserProfile profile = userProfileRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Perfil no encontrado"));
@@ -72,6 +74,15 @@ public class FinanceService {
         // 2. Obtener registros recurrentes y filtrar los que caen en el rango
         List<FinancialRecord> recurrentRecords = financialRecordRepository.findByUserAndIsRecurrentTrue(user);
         
+        if (dashboardId != null) {
+            records = records.stream()
+                    .filter(r -> r.getDashboard() != null && r.getDashboard().getId().equals(dashboardId))
+                    .collect(Collectors.toList());
+            recurrentRecords = recurrentRecords.stream()
+                    .filter(r -> r.getDashboard() != null && r.getDashboard().getId().equals(dashboardId))
+                    .collect(Collectors.toList());
+        }
+
         List<FinanceResponse> responses = new ArrayList<>();
         
         // Agregar registros normales
@@ -128,6 +139,15 @@ public class FinanceService {
                 .paymentMethod(paymentMethod)
                 .paymentStatus(paymentStatus)
                 .build();
+
+        if (request.getDashboardId() != null) {
+            Dashboard dash = dashboardRepository.findById(request.getDashboardId())
+                    .orElseThrow(() -> new RuntimeException("Dashboard no encontrado"));
+            if (!dash.getUser().getId().equals(user.getId())) {
+                throw new RuntimeException("No tienes permiso para asociar finanzas a este dashboard");
+            }
+            record.setDashboard(dash);
+        }
 
         record = financialRecordRepository.save(record);
 
@@ -188,6 +208,15 @@ public class FinanceService {
             PaymentStatus paymentStatus = paymentStatusRepository.findById(request.getPaymentStatusId())
                     .orElseThrow(() -> new RuntimeException("Estatus de pago no encontrado"));
             record.setPaymentStatus(paymentStatus);
+        }
+
+        if (request.getDashboardId() != null) {
+            Dashboard dash = dashboardRepository.findById(request.getDashboardId())
+                    .orElseThrow(() -> new RuntimeException("Dashboard no encontrado"));
+            if (!dash.getUser().getId().equals(user.getId())) {
+                throw new RuntimeException("No tienes permiso para asociar finanzas a este dashboard");
+            }
+            record.setDashboard(dash);
         }
 
         if (request.getIsRecurrent() != null) {
@@ -284,6 +313,7 @@ public class FinanceService {
                 .recordTypeName(record.getRecordType() != null ? record.getRecordType().getName() : "Desconocido")
                 .isRecurrent(record.getIsRecurrent())
                 .frequencyType(record.getMetadata() != null ? record.getMetadata().getFrequencyType() : null)
+                .dashboardId(record.getDashboard() != null ? record.getDashboard().getId() : null)
                 .build();
     }
 

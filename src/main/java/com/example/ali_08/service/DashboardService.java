@@ -32,32 +32,34 @@ public class DashboardService {
 
     public List<DashboardResponse> getDashboardData() {
         User user = getCurrentUser();
-        UserProfile profile = userProfileRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Perfil de usuario no encontrado"));
-
-        BigDecimal salary = profile.getSalary() != null ? profile.getSalary() : BigDecimal.ZERO;
         
         // 1. Obtener dashboards del usuario de la BD
         List<Dashboard> userDashboards = dashboardRepository.findByUser(user);
 
-        // 2. Calcular gastos del mes actual usando la nueva lógica de finanzas (incluye recurrentes)
+        // 2. Calcular ingresos y gastos por dashboard (incluye recurrentes)
         LocalDateTime now = LocalDateTime.now();
         LocalDate startOfMonth = now.with(TemporalAdjusters.firstDayOfMonth()).toLocalDate();
         LocalDate endOfMonth = now.with(TemporalAdjusters.lastDayOfMonth()).toLocalDate();
-        
-        List<FinanceResponse> currentMonthFinances = financeService.getFinancesByPeriod(startOfMonth, endOfMonth);
-        
-        BigDecimal monthlyExpenses = currentMonthFinances.stream()
-                .filter(f -> f.getRecordTypeName().equalsIgnoreCase("Gasto"))
-                .map(FinanceResponse::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
-        // El balance es Salario - Gastos del mes
-        BigDecimal currentBalance = salary.subtract(monthlyExpenses);
 
         // 3. Mapear cada dashboard de la BD a la respuesta
         return userDashboards.stream()
-                .map(db -> mapToResponse(db, currentBalance, salary, monthlyExpenses))
+                .map(db -> {
+                    List<FinanceResponse> dashboardFinances = financeService.getFinancesByPeriod(startOfMonth, endOfMonth, db.getId());
+
+                    BigDecimal monthlyIncome = dashboardFinances.stream()
+                            .filter(f -> "Ingreso".equalsIgnoreCase(f.getRecordTypeName()))
+                            .map(FinanceResponse::getAmount)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                    BigDecimal monthlyExpenses = dashboardFinances.stream()
+                            .filter(f -> "Gasto".equalsIgnoreCase(f.getRecordTypeName()))
+                            .map(FinanceResponse::getAmount)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                    BigDecimal currentBalance = monthlyIncome.subtract(monthlyExpenses);
+
+                    return mapToResponse(db, currentBalance, monthlyIncome, monthlyExpenses);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -110,35 +112,38 @@ public class DashboardService {
 
     private DashboardResponse getSingleDashboardResponse(Dashboard db) {
         User user = db.getUser();
-        UserProfile profile = userProfileRepository.findByUser(user)
+        userProfileRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Perfil de usuario no encontrado"));
-
-        BigDecimal salary = profile.getSalary() != null ? profile.getSalary() : BigDecimal.ZERO;
 
         LocalDateTime now = LocalDateTime.now();
         LocalDate startOfMonth = now.with(TemporalAdjusters.firstDayOfMonth()).toLocalDate();
         LocalDate endOfMonth = now.with(TemporalAdjusters.lastDayOfMonth()).toLocalDate();
 
-        List<FinanceResponse> currentMonthFinances = financeService.getFinancesByPeriod(startOfMonth, endOfMonth);
+        List<FinanceResponse> dashboardFinances = financeService.getFinancesByPeriod(startOfMonth, endOfMonth, db.getId());
 
-        BigDecimal monthlyExpenses = currentMonthFinances.stream()
-                .filter(f -> f.getRecordTypeName().equalsIgnoreCase("Gasto"))
+        BigDecimal monthlyIncome = dashboardFinances.stream()
+                .filter(f -> "Ingreso".equalsIgnoreCase(f.getRecordTypeName()))
                 .map(FinanceResponse::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal currentBalance = salary.subtract(monthlyExpenses);
+        BigDecimal monthlyExpenses = dashboardFinances.stream()
+                .filter(f -> "Gasto".equalsIgnoreCase(f.getRecordTypeName()))
+                .map(FinanceResponse::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return mapToResponse(db, currentBalance, salary, monthlyExpenses);
+        BigDecimal currentBalance = monthlyIncome.subtract(monthlyExpenses);
+
+        return mapToResponse(db, currentBalance, monthlyIncome, monthlyExpenses);
     }
 
-    private DashboardResponse mapToResponse(Dashboard db, BigDecimal currentBalance, BigDecimal salary, BigDecimal monthlyExpenses) {
+    private DashboardResponse mapToResponse(Dashboard db, BigDecimal currentBalance, BigDecimal monthlyIncome, BigDecimal monthlyExpenses) {
         return DashboardResponse.builder()
                 .id(db.getId())
                 .name(db.getName())
                 .description(db.getDescription())
                 .totalBalance(currentBalance)
                 .currencyCode("USD")
-                .monthlyIncome(salary)
+                .monthlyIncome(monthlyIncome)
                 .monthlyExpenses(monthlyExpenses)
                 .build();
     }
