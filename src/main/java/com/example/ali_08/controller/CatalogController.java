@@ -3,10 +3,19 @@ package com.example.ali_08.controller;
 import com.example.ali_08.dto.ApiResponse;
 import com.example.ali_08.dto.CategoryResponse;
 import com.example.ali_08.dto.IncomeFrequencyResponse;
+import com.example.ali_08.dto.PaymentMethodResponse;
+import com.example.ali_08.dto.PaymentStatusResponse;
+import com.example.ali_08.dto.RecordTypeResponse;
 import com.example.ali_08.model.Category;
 import com.example.ali_08.model.IncomeFrequency;
+import com.example.ali_08.model.PaymentMethod;
+import com.example.ali_08.model.PaymentStatus;
+import com.example.ali_08.model.RecordType;
 import com.example.ali_08.repository.CategoryRepository;
 import com.example.ali_08.repository.IncomeFrequencyRepository;
+import com.example.ali_08.repository.PaymentMethodRepository;
+import com.example.ali_08.repository.PaymentStatusRepository;
+import com.example.ali_08.repository.RecordTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +34,9 @@ public class CatalogController {
 
     private final IncomeFrequencyRepository incomeFrequencyRepository;
     private final CategoryRepository categoryRepository;
+    private final RecordTypeRepository recordTypeRepository;
+    private final PaymentMethodRepository paymentMethodRepository;
+    private final PaymentStatusRepository paymentStatusRepository;
 
     @GetMapping("/income-frequencies")
     public ResponseEntity<ApiResponse<List<IncomeFrequencyResponse>>> getIncomeFrequencies() {
@@ -67,6 +79,57 @@ public class CatalogController {
 
         return ResponseEntity.ok(
                 ApiResponse.success(response, "Catálogo de categorías obtenido correctamente", HttpStatus.OK.value())
+        );
+    }
+
+    @GetMapping("/record-types")
+    public ResponseEntity<ApiResponse<List<RecordTypeResponse>>> getRecordTypes() {
+        List<RecordType> types = recordTypeRepository.findAll();
+
+        List<RecordTypeResponse> response = types.stream()
+                .map(t -> RecordTypeResponse.builder()
+                        .id(t.getId())
+                        .name(t.getName())
+                        .description(t.getDescription())
+                        .build())
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response, "Catálogo de tipos obtenido correctamente", HttpStatus.OK.value())
+        );
+    }
+
+    @GetMapping("/payment-methods")
+    public ResponseEntity<ApiResponse<List<PaymentMethodResponse>>> getPaymentMethods() {
+        List<PaymentMethod> methods = paymentMethodRepository.findAll();
+
+        List<PaymentMethodResponse> response = methods.stream()
+                .map(m -> PaymentMethodResponse.builder()
+                        .id(m.getId())
+                        .name(m.getName())
+                        .isActive(m.getIsActive())
+                        .build())
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response, "Catálogo de métodos de pago obtenido correctamente", HttpStatus.OK.value())
+        );
+    }
+
+    @GetMapping("/payment-statuses")
+    public ResponseEntity<ApiResponse<List<PaymentStatusResponse>>> getPaymentStatuses() {
+        List<PaymentStatus> statuses = paymentStatusRepository.findAll();
+
+        List<PaymentStatusResponse> response = statuses.stream()
+                .map(s -> PaymentStatusResponse.builder()
+                        .id(s.getId())
+                        .status(s.getStatus())
+                        .color(s.getColor())
+                        .build())
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response, "Catálogo de estatus de pago obtenido correctamente", HttpStatus.OK.value())
         );
     }
 }
