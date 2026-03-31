@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Component
@@ -22,26 +21,28 @@ public class CategorySeeder {
 
     @PostConstruct
     public void seed() {
-        if (categoryRepository.count() == 0) {
-            RecordType income = recordTypeRepository.findByName("Ingreso")
-                    .orElseThrow(() -> new RuntimeException("RecordType Ingreso not found"));
-            RecordType expense = recordTypeRepository.findByName("Gasto")
-                    .orElseThrow(() -> new RuntimeException("RecordType Gasto not found"));
+        RecordType income = recordTypeRepository.findByName("Ingreso")
+                .orElseThrow(() -> new RuntimeException("RecordType Ingreso not found"));
+        RecordType expense = recordTypeRepository.findByName("Gasto")
+                .orElseThrow(() -> new RuntimeException("RecordType Gasto not found"));
 
-            List<Category> categories = Arrays.asList(
-                    Category.builder().name("Salario").recordType(income).build(),
-                    Category.builder().name("Freelance").recordType(income).build(),
-                    Category.builder().name("Inversiones").recordType(income).build(),
-                    Category.builder().name("Comida y Restaurantes").recordType(expense).build(),
-                    Category.builder().name("Transporte").recordType(expense).build(),
-                    Category.builder().name("Servicios").recordType(expense).build(),
-                    Category.builder().name("Entretenimiento").recordType(expense).build(),
-                    Category.builder().name("Compras").recordType(expense).build(),
-                    Category.builder().name("Salud").recordType(expense).build(),
-                    Category.builder().name("Educación").recordType(expense).build()
-            );
+        List<Category> desiredCategories = List.of(
+                Category.builder().name("Salario").recordType(income).build(),
+                Category.builder().name("Freelance").recordType(income).build(),
+                Category.builder().name("Inversiones").recordType(income).build(),
+                Category.builder().name("Comida y Restaurantes").recordType(expense).build(),
+                Category.builder().name("Transporte").recordType(expense).build(),
+                Category.builder().name("Servicios").recordType(expense).build(),
+                Category.builder().name("Entretenimiento").recordType(expense).build(),
+                Category.builder().name("Compras").recordType(expense).build(),
+                Category.builder().name("Salud").recordType(expense).build(),
+                Category.builder().name("Educación").recordType(expense).build()
+        );
 
-            categoryRepository.saveAll(categories);
+        for (Category category : desiredCategories) {
+            if (!categoryRepository.existsByName(category.getName())) {
+                categoryRepository.save(category);
+            }
         }
     }
 }
