@@ -57,9 +57,17 @@ public class CatalogController {
 
     @GetMapping("/categories")
     public ResponseEntity<ApiResponse<List<CategoryResponse>>> getCategories(
+            @RequestParam(required = false) Long recordTypeId,
             @RequestParam(required = false) String recordType
     ) {
         List<Category> categories = categoryRepository.findAll();
+
+        if (recordTypeId != null) {
+            categories = categories.stream()
+                    .filter(c -> c.getRecordType() != null && c.getRecordType().getId() != null)
+                    .filter(c -> c.getRecordType().getId().equals(recordTypeId))
+                    .collect(Collectors.toList());
+        }
 
         if (recordType != null && !recordType.isBlank()) {
             categories = categories.stream()
